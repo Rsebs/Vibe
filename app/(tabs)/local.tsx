@@ -1,80 +1,58 @@
-import { DeezerProvider } from '@/services/DeezerProvider'
-import { Track } from '@/services/MusicProvider'
-import { usePlayerStore } from '@/store/usePlayerStore'
-import { Music, Search } from 'lucide-react-native'
-import React, { useEffect, useState } from 'react'
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native'
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, FlatList, TextInput, View, Text, Pressable, Image, ActivityIndicator } from 'react-native';
+import { LocalProvider } from '@/services/LocalProvider';
+import { Track } from '@/services/MusicProvider';
+import { usePlayerStore } from '@/store/usePlayerStore';
+import { Search, Music } from 'lucide-react-native';
 
-export default function ApiSearchScreen() {
-  const [query, setQuery] = useState('')
-  const [tracks, setTracks] = useState<Track[]>([])
-  const [loading, setLoading] = useState(false)
-  const { playTrack, currentTrack } = usePlayerStore()
+export default function LocalSearchScreen() {
+  const [query, setQuery] = useState('');
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { playTrack, currentTrack } = usePlayerStore();
 
   useEffect(() => {
     const fetchTracks = async () => {
-      setLoading(true)
+      setLoading(true);
       try {
         if (query.trim() === '') {
-          const results = DeezerProvider.getTopTracks
-            ? await DeezerProvider.getTopTracks()
-            : []
-          setTracks(results)
+          const results = LocalProvider.getTopTracks ? await LocalProvider.getTopTracks() : [];
+          setTracks(results);
         } else {
-          const results = await DeezerProvider.search(query)
-          setTracks(results)
+          const results = await LocalProvider.search(query);
+          setTracks(results);
         }
       } catch (e) {
-        console.error(e)
+        console.error(e);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
-
+    };
+    
     const delayDebounceFn = setTimeout(() => {
-      fetchTracks()
-    }, 500)
+      fetchTracks();
+    }, 300); // Faster debounce for local files
 
-    return () => clearTimeout(delayDebounceFn)
-  }, [query])
+    return () => clearTimeout(delayDebounceFn);
+  }, [query]);
 
   const renderItem = ({ item }: { item: Track }) => {
-    const isPlaying = currentTrack?.id === item.id
+    const isPlaying = currentTrack?.id === item.id;
     return (
-      <Pressable
+      <Pressable 
         style={[styles.trackItem, isPlaying && styles.trackItemActive]}
         onPress={() => playTrack(item, tracks)}
       >
-        {item.albumArt ? (
-          <Image source={{ uri: item.albumArt }} style={styles.albumArt} />
-        ) : (
-          <View style={styles.albumArtPlaceholder}>
-            <Music color="#b3b3b3" size={24} />
-          </View>
-        )}
+        <View style={styles.albumArtPlaceholder}>
+          <Music color="#b3b3b3" size={24} />
+        </View>
         <View style={styles.trackInfo}>
-          <Text
-            style={[styles.trackTitle, isPlaying && { color: '#1DB954' }]}
-            numberOfLines={1}
-          >
-            {item.title}
-          </Text>
-          <Text style={styles.trackArtist} numberOfLines={1}>
-            {item.artist}
-          </Text>
+          <Text style={[styles.trackTitle, isPlaying && { color: '#1DB954' }]} numberOfLines={1}>{item.title}</Text>
+          <Text style={styles.trackArtist} numberOfLines={1}>{item.artist}</Text>
         </View>
       </Pressable>
-    )
-  }
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -83,7 +61,7 @@ export default function ApiSearchScreen() {
           <Search color="#b3b3b3" size={20} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Buscar tu canción favorita..."
+            placeholder="Buscar música local..."
             placeholderTextColor="#b3b3b3"
             value={query}
             onChangeText={setQuery}
@@ -92,24 +70,18 @@ export default function ApiSearchScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator
-          style={{ marginTop: 50 }}
-          color="#1DB954"
-          size="large"
-        />
+        <ActivityIndicator style={{ marginTop: 50 }} color="#1DB954" size="large" />
       ) : (
         <FlatList
           data={tracks}
           keyExtractor={(item) => item.id.toString() + item.streamUrl}
           renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: 100 }}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No hay resultados</Text>
-          }
+          contentContainerStyle={{ paddingBottom: 50 }}
+          ListEmptyComponent={<Text style={styles.emptyText}>No hay música local encontrada</Text>}
         />
       )}
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -145,11 +117,6 @@ const styles = StyleSheet.create({
   trackItemActive: {
     backgroundColor: '#1a1a1a',
   },
-  albumArt: {
-    width: 50,
-    height: 50,
-    borderRadius: 4,
-  },
   albumArtPlaceholder: {
     width: 50,
     height: 50,
@@ -178,5 +145,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 50,
     fontSize: 16,
-  },
-})
+  }
+});
